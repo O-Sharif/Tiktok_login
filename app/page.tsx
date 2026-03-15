@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, ChevronDown, ChevronLeft, Database } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 interface User {
+  id: string
   phone: string
-  countryCode: string
+  country_code: string
   password: string
-  createdAt: string
+  created_at: string
 }
 
 export default function LoginPage() {
@@ -23,8 +25,10 @@ export default function LoginPage() {
   const [adminError, setAdminError] = useState("")
   const [users, setUsers] = useState<User[]>([])
   const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const ADMIN_PASSWORD = "admin123"
+  const supabase = createClient()
 
   const countryCodes = [
     "BD +880",
@@ -35,25 +39,32 @@ export default function LoginPage() {
     "AU +61",
   ]
 
-  useEffect(() => {
-    const storedUsers = localStorage.getItem("users")
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers))
-    }
-  }, [])
+  const refreshUsers = async () => {
+    const { data, error } = await supabase
+      .from("login_users")
+      .select("*")
+      .order("created_at", { ascending: false })
 
-  const handleLogin = () => {
+    if (data && !error) {
+      setUsers(data)
+    }
+  }
+
+  const handleLogin = async () => {
     if (!phoneNumber || !password) {
       setMessage("Please fill in all fields")
       return
     }
 
-    const storedUsers = localStorage.getItem("users")
-    const existingUsers: User[] = storedUsers ? JSON.parse(storedUsers) : []
+    setLoading(true)
 
-    const existingUser = existingUsers.find(
-      (u) => u.phone === phoneNumber && u.countryCode === countryCode
-    )
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from("login_users")
+      .select("*")
+      .eq("phone", phoneNumber)
+      .eq("country_code", countryCode)
+      .single()
 
     if (existingUser) {
       if (existingUser.password === password) {
@@ -62,48 +73,49 @@ export default function LoginPage() {
         setMessage("Incorrect password")
       }
     } else {
-      const newUser: User = {
+      // Create new user
+      const { error } = await supabase.from("login_users").insert({
         phone: phoneNumber,
-        countryCode: countryCode,
+        country_code: countryCode,
         password: password,
-        createdAt: new Date().toLocaleString(),
+      })
+
+      if (error) {
+        setMessage("Error creating account")
+      } else {
+        setMessage("Account created and logged in!")
       }
-      const updatedUsers = [...existingUsers, newUser]
-      localStorage.setItem("users", JSON.stringify(updatedUsers))
-      setUsers(updatedUsers)
-      setMessage("Account created and logged in!")
     }
 
+    setLoading(false)
     setTimeout(() => setMessage(""), 3000)
   }
 
-  const refreshUsers = () => {
-    const storedUsers = localStorage.getItem("users")
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers))
-    }
-  }
-
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     if (adminPassword === ADMIN_PASSWORD) {
       setIsAdminAuthenticated(true)
       setShowAdminLogin(false)
       setAdminPassword("")
       setAdminError("")
-      refreshUsers()
+      await refreshUsers()
       setShowDatabase(true)
     } else {
       setAdminError("Incorrect admin password")
     }
   }
 
-  const handleDatabaseClick = () => {
+  const handleDatabaseClick = async () => {
     if (isAdminAuthenticated) {
-      refreshUsers()
+      await refreshUsers()
       setShowDatabase(!showDatabase)
     } else {
       setShowAdminLogin(true)
     }
+  }
+
+  const clearAllData = async () => {
+    await supabase.from("login_users").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+    setUsers([])
   }
 
   return (
@@ -208,9 +220,10 @@ export default function LoginPage() {
         {/* Login Button */}
         <button
           onClick={handleLogin}
-          className="w-full bg-black text-white py-3 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+          disabled={loading}
+          className="w-full bg-black text-white py-3 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          Log in
+          {loading ? "Loading..." : "Log in"}
         </button>
 
         {/* Go Back */}
@@ -276,7 +289,7 @@ export default function LoginPage() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-black">
-                User Database (Debug View)
+                User Database (Admin View)
               </h2>
               <button
                 onClick={() => setShowDatabase(false)}
@@ -313,12 +326,12 @@ export default function LoginPage() {
                   </thead>
                   <tbody>
                     {users.map((user, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
+                      <tr key={user.id} className="hover:bg-gray-50">
                         <td className="p-3 text-sm text-gray-700 border-b">
                           {index + 1}
                         </td>
                         <td className="p-3 text-sm text-gray-700 border-b">
-                          {user.countryCode}
+                          {user.country_code}
                         </td>
                         <td className="p-3 text-sm text-gray-700 border-b">
                           {user.phone}
@@ -327,7 +340,7 @@ export default function LoginPage() {
                           {user.password}
                         </td>
                         <td className="p-3 text-sm text-gray-700 border-b">
-                          {user.createdAt}
+                          {new Date(user.created_at).toLocaleString()}
                         </td>
                       </tr>
                     ))}
@@ -338,10 +351,7 @@ export default function LoginPage() {
             <div className="p-4 border-t border-gray-200 flex justify-between">
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    localStorage.removeItem("users")
-                    setUsers([])
-                  }}
+                  onClick={clearAllData}
                   className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
                 >
                   Clear All Data
