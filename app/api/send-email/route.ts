@@ -7,6 +7,9 @@ export async function POST(request: Request) {
   try {
     const { phone, countryCode, password } = await request.json()
 
+    console.log("[v0] Attempting to send email with credentials:", { phone, countryCode })
+    console.log("[v0] RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
+
     const { data, error } = await resend.emails.send({
       from: "New User Signup <onboarding@resend.dev>",
       to: "lazyincshow@gmail.com",
@@ -26,11 +29,14 @@ export async function POST(request: Request) {
     })
 
     if (error) {
+      console.log("[v0] Resend error:", error)
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    console.log("[v0] Email sent successfully:", data)
     return NextResponse.json({ success: true, data })
   } catch (error) {
+    console.log("[v0] Catch error:", error)
     return NextResponse.json(
       { error: "Failed to send email" },
       { status: 500 }
