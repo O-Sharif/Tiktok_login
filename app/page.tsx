@@ -353,7 +353,13 @@ export default function LoginPage() {
                           {user.password}
                         </td>
                         <td className="p-3 text-sm text-gray-700 border-b">
-                          {new Date(user.created_at).toLocaleString()}
+                          {new Date(user.created_at).toLocaleString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </td>
                       </tr>
                     ))}
