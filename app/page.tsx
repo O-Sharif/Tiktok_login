@@ -17,8 +17,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showDropdown, setShowDropdown] = useState(false)
   const [showDatabase, setShowDatabase] = useState(false)
+  const [showAdminLogin, setShowAdminLogin] = useState(false)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
+  const [adminPassword, setAdminPassword] = useState("")
+  const [adminError, setAdminError] = useState("")
   const [users, setUsers] = useState<User[]>([])
   const [message, setMessage] = useState("")
+
+  const ADMIN_PASSWORD = "admin123"
 
   const countryCodes = [
     "BD +880",
@@ -75,6 +81,28 @@ export default function LoginPage() {
     const storedUsers = localStorage.getItem("users")
     if (storedUsers) {
       setUsers(JSON.parse(storedUsers))
+    }
+  }
+
+  const handleAdminLogin = () => {
+    if (adminPassword === ADMIN_PASSWORD) {
+      setIsAdminAuthenticated(true)
+      setShowAdminLogin(false)
+      setAdminPassword("")
+      setAdminError("")
+      refreshUsers()
+      setShowDatabase(true)
+    } else {
+      setAdminError("Incorrect admin password")
+    }
+  }
+
+  const handleDatabaseClick = () => {
+    if (isAdminAuthenticated) {
+      refreshUsers()
+      setShowDatabase(!showDatabase)
+    } else {
+      setShowAdminLogin(true)
     }
   }
 
@@ -194,15 +222,53 @@ export default function LoginPage() {
 
       {/* Database Debug Button */}
       <button
-        onClick={() => {
-          refreshUsers()
-          setShowDatabase(!showDatabase)
-        }}
+        onClick={handleDatabaseClick}
         className="fixed bottom-3 right-3 w-5 h-5 bg-gray-400 hover:bg-gray-500 hover:opacity-100 rounded-full flex items-center justify-center transition-all opacity-30"
-        title="View User Database"
+        title="View User Database (Admin Only)"
       >
         <Database className="w-2.5 h-2.5 text-gray-700" />
       </button>
+
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-lg font-semibold text-black mb-4">Admin Login</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter admin password to view user database.
+            </p>
+            <input
+              type="password"
+              placeholder="Admin password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-md outline-none text-black placeholder-gray-400 mb-3"
+            />
+            {adminError && (
+              <p className="text-sm text-red-600 mb-3">{adminError}</p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowAdminLogin(false)
+                  setAdminPassword("")
+                  setAdminError("")
+                }}
+                className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-black"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdminLogin}
+                className="flex-1 px-4 py-2 text-sm bg-black text-white rounded-md hover:bg-gray-800"
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Database Modal */}
       {showDatabase && (
@@ -270,15 +336,26 @@ export default function LoginPage() {
               )}
             </div>
             <div className="p-4 border-t border-gray-200 flex justify-between">
-              <button
-                onClick={() => {
-                  localStorage.removeItem("users")
-                  setUsers([])
-                }}
-                className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
-              >
-                Clear All Data
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("users")
+                    setUsers([])
+                  }}
+                  className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+                >
+                  Clear All Data
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAdminAuthenticated(false)
+                    setShowDatabase(false)
+                  }}
+                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                >
+                  Logout Admin
+                </button>
+              </div>
               <button
                 onClick={() => setShowDatabase(false)}
                 className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800"
