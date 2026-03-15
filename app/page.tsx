@@ -198,10 +198,10 @@ export default function LoginPage() {
           refreshUsers()
           setShowDatabase(!showDatabase)
         }}
-        className="fixed bottom-4 right-4 w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center shadow-lg transition-colors"
+        className="fixed bottom-3 right-3 w-5 h-5 bg-gray-400 hover:bg-gray-500 hover:opacity-100 rounded-full flex items-center justify-center transition-all opacity-30"
         title="View User Database"
       >
-        <Database className="w-5 h-5 text-gray-600" />
+        <Database className="w-2.5 h-2.5 text-gray-700" />
       </button>
 
       {/* Database Modal */}
