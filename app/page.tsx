@@ -28,7 +28,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const ADMIN_PASSWORD = "admin123"
-  const supabase = createClient()
+  const [mounted, setMounted] = useState(false)
+  
+  // Only create client after component mounts (client-side only)
+  const supabase = mounted ? createClient() : null
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const countryCodes = [
     "BD +880",
@@ -40,6 +47,8 @@ export default function LoginPage() {
   ]
 
   const refreshUsers = async () => {
+    if (!supabase) return
+    
     const { data, error } = await supabase
       .from("login_users")
       .select("*")
@@ -51,6 +60,8 @@ export default function LoginPage() {
   }
 
   const handleLogin = async () => {
+    if (!supabase) return
+    
     if (!phoneNumber || !password) {
       setMessage("Please fill in all fields")
       return
@@ -114,6 +125,8 @@ export default function LoginPage() {
   }
 
   const clearAllData = async () => {
+    if (!supabase) return
+    
     await supabase.from("login_users").delete().neq("id", "00000000-0000-0000-0000-000000000000")
     setUsers([])
   }
